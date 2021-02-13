@@ -30,7 +30,28 @@
         "url": "https://github.com/grafana/grafana-starter-datasource-backend/blob/master/LICENSE"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "Data Source Config",
+        "path": "img/vertica-ds-conf.png" 
+      },
+      {
+        "name": "Data Source Query Time series",
+        "path": "img/vertica-query-time-series.png" 
+      },
+      {
+        "name": "Data Source Query Table",
+        "path": "img/vertica-query-table.png" 
+      },
+      {
+        "name": "Data Source Variable example",
+        "path": "img/vertica-var-example.png" 
+      },
+      {
+        "name": "Data Source Variable usage",
+        "path": "img/vertica-var-usage.png" 
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },

@@ -2,7 +2,7 @@
 # Vertica Grafana Data Source
 This is a work-in-progress Grafana plugin to support the Vertica database.
 
-It defines a new datsource that communicates with Vertica using the Vertica golang driver. [http://github.com/vertica/vertica-sql-go]. Due to this, we needed to implement both front and and back end components using the slightly-undocumented backend framework.
+It defines a new datsource that communicates with Vertica using the Vertica golang driver. [http://github.com/vertica/vertica-sql-go]. This pulugin is a backend data source plugin.
 
 ## Installtion
 As of now this plugin is not singed , so you will have to clone the repo and then build it.
