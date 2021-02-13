@@ -1,3 +1,4 @@
+![Release](https://github.com/rajsameer/vertica-datasource/workflows/Release/badge.svg)
 # Vertica Grafana Data Source
 This is a work-in-progress Grafana plugin to support the Vertica database.
 
