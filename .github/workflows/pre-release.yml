@@ -3,7 +3,7 @@ name: ReleaseInitial
 on:
   push:
     tags:
-      - "v*.*.*" # Run workflow on version tags, e.g. v1.0.0.
+      - "pre-v*.*.*" # Run workflow on version tags, e.g. pre-v1.0.0.
 
 jobs:
   release:
