@@ -5,6 +5,7 @@
   "id": "rajsameer-vertica-datasource",
   "metrics": true,
   "backend": true,
+  "annotations": true,
   "executable": "gpx_vertica-datasource",
   "info": {
     "description": "vertica grafana data source sql",

@@ -7,6 +7,7 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
   constructor(instanceSettings: DataSourceInstanceSettings<VerticaDataSourceOptions>) {
     super(instanceSettings);
     this.templateSrv = getTemplateSrv();
+    this.annotations = {};
   }
 
   applyTemplateVariables(query: VerticaQuery, scopedVars: ScopedVars): VerticaQuery {

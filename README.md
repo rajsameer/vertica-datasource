@@ -121,6 +121,14 @@ You can use the grafana [Advanced formating options]https://grafana.com/docs/gra
 In this example we create a multi select variable of node name , use ${node:sqlstring} for templating in the query. 
 ![](src/img/vertica-var-usage.png)
 
+## Annotations
+
+Annotaions are supported from grafana 7.2+
+![](src/img/vertica-annotaions-usage.png)
+
+Inorder to use annotations, you can write any wuery which will return time, timeEnd, text, title and tags column as shown in the image.
+And you are good to go
+
 ## Debugging
 
 You can debugg the backed code using dlv.
