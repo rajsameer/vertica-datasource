@@ -1,5 +1,5 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { LegacyForms, InlineLabel, Switch, Field, InfoBox } from '@grafana/ui';
+import { LegacyForms, InlineLabel, Switch, Field, InfoBox, Slider } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps, SelectableValue } from '@grafana/data';
 import { VerticaDataSourceOptions, VerticaSecureJsonData } from './types';
 
@@ -54,6 +54,30 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({ ...options, jsonData });
   };
 
+  onMaxOpenConnectionsChange = (value: number) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxOpenConnections: value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onMaxIdealConnectionsChange = (value: number) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxIdealConnections: value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onMaxConnectionIdealTimeChange = (value: number) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxConnectionIdealTime: value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
   onDatabaseChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     const jsonData = {
@@ -204,6 +228,48 @@ export class ConfigEditor extends PureComponent<Props, State> {
               value={{ label: jsonData.sslMode || 'none', value: jsonData.sslMode || 'none' }}
               onChange={this.onSSLModeChange}
             />
+          </div>
+        </div>
+        <div className="gf-form-inline">
+          <div className="gf-form">
+            <Field
+              label="Max Open Connections"
+              description="Set max open connections to database, ideal + open connections"
+            >
+              <Slider
+                min={0}
+                max={100}
+                onChange={this.onMaxOpenConnectionsChange}
+                value={jsonData.maxOpenConnections || 0}
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="gf-form-inline">
+          <div className="gf-form">
+            <Field
+              label="Max Ideal Connections"
+              description="Set max ideal connections to database, should be less than or equal to max open connections"
+            >
+              <Slider
+                min={0}
+                max={jsonData.maxOpenConnections}
+                onChange={this.onMaxIdealConnectionsChange}
+                value={jsonData.maxIdealConnections || 0}
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="gf-form-inline">
+          <div className="gf-form">
+            <Field label="Max Connection Ideal Time" description="Set max ideal connections time, in minutes">
+              <Slider
+                min={0}
+                max={999}
+                onChange={this.onMaxConnectionIdealTimeChange}
+                value={jsonData.maxConnectionIdealTime || 0}
+              />
+            </Field>
           </div>
         </div>
         <div className="gf-form-inline">

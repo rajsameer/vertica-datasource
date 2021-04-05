@@ -28,6 +28,9 @@ export interface VerticaDataSourceOptions extends DataSourceJsonData {
   sslMode: 'none' | 'server' | 'server-strict';
   usePreparedStatement: boolean;
   useConnectionLoadbalancing: boolean;
+  maxOpenConnections: number;
+  maxIdealConnections: number;
+  maxConnectionIdealTime: number;
 }
 
 /**

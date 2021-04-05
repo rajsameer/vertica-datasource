@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
@@ -40,6 +41,21 @@ type VerticaDatasource struct {
 	im instancemgmt.InstanceManager
 }
 
+//GetVerticaConnection will return the vertica db connection
+//stored in the instance setting when the instance is created or update
+func (td *VerticaDatasource) GetVerticaConnection(pluginContext backend.PluginContext) (*sql.DB, error) {
+	instance, err := td.im.Get(pluginContext)
+	if err != nil {
+		return nil, err
+	}
+	if instanceSetting, ok := instance.(*instanceSettings); ok {
+		return instanceSetting.DbConnection, nil
+	} else {
+		return nil, err
+	}
+
+}
+
 // QueryData handles multiple queries and returns multiple responses.
 // req contains the queries []DataQuery (where each query contains RefID as a unique identifer).
 // The QueryDataResponse contains a map of RefID to the response for each query, and each response
@@ -50,19 +66,14 @@ func (td *VerticaDatasource) QueryData(ctx context.Context, req *backend.QueryDa
 	// create response struct
 	response := backend.NewQueryDataResponse()
 
-	//creating a connection string for database connection
-	var config datasourceConfig
-	secret := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-
-	err := json.Unmarshal(req.PluginContext.DataSourceInstanceSettings.JSONData, &config)
+	connDB, err := td.GetVerticaConnection(req.PluginContext)
 	if err != nil {
-		log.DefaultLogger.Error(err.Error())
+		return nil, err
 	}
-	connStr := config.ConnectionURL(secret)
 
 	// loop over queries and execute them individually.
 	for _, q := range req.Queries {
-		res := td.query(ctx, q, connStr)
+		res := td.query(ctx, q, connDB)
 
 		// save the response in a hashmap
 		// based on with RefID as identifier
@@ -77,7 +88,7 @@ type queryModel struct {
 	QueryTemplated string `json:"queryTemplated,omitempty"`
 }
 
-func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, connectionString string) backend.DataResponse {
+func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, connDB *sql.DB) backend.DataResponse {
 	// Unmarshal the json into our queryModel
 	var qm queryModel
 
@@ -85,21 +96,6 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 
 	response.Error = json.Unmarshal(query.JSON, &qm)
 	if response.Error != nil {
-		return response
-	}
-
-	//DB connection open
-	connDB, err := sql.Open("vertica", connectionString)
-	if err != nil {
-		response.Error = err
-		return response
-	}
-	defer connDB.Close()
-
-	//check in connected to DB
-	err = connDB.PingContext(ctx)
-	if err != nil {
-		response.Error = err
 		return response
 	}
 
@@ -176,30 +172,14 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	var status = backend.HealthStatusOk
 
-	var config datasourceConfig
-	secret := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-
-	err := json.Unmarshal(req.PluginContext.DataSourceInstanceSettings.JSONData, &config)
-	if err != nil {
-		log.DefaultLogger.Error(err.Error())
-	}
-
-	connStr := config.ConnectionURL(secret)
-	connDB, err := sql.Open("vertica", connStr)
+	connDB, err := td.GetVerticaConnection(req.PluginContext)
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: fmt.Sprintf("%s", err),
 		}, nil
 	}
-	defer connDB.Close()
-	err = connDB.PingContext(ctx)
-	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("%s", err),
-		}, nil
-	}
+
 	result, err := connDB.QueryContext(ctx, "SELECT version()")
 	if err != nil {
 		return &backend.CheckHealthResult{
@@ -227,16 +207,37 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 }
 
 type instanceSettings struct {
-	httpClient *http.Client
+	httpClient   *http.Client
+	DbConnection *sql.DB
+	Name         string
 }
 
+// newDataSourceInstance is called always when a datasource is created or updated in the ui
+// in either create or update, open a pool of sql connections and update them
 func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+	var config datasourceConfig
+	secret := setting.DecryptedSecureJSONData["password"]
+	err := json.Unmarshal(setting.JSONData, &config)
+	if err != nil {
+		log.DefaultLogger.Error(err.Error())
+	}
+	connStr := config.ConnectionURL(secret)
+	connDB, err := sql.Open("vertica", connStr)
+	if err != nil {
+		return nil, err
+	}
+	connDB.SetMaxOpenConns(config.MaxOpenConnections)
+	connDB.SetMaxIdleConns(config.MaxIdealConnections)
+	connDB.SetConnMaxIdleTime(time.Minute * time.Duration(config.MaxConnectionIdealTime))
+	log.DefaultLogger.Info(fmt.Sprintf("new instance of datasource %s created", setting.Name))
 	return &instanceSettings{
-		httpClient: &http.Client{},
+		httpClient:   &http.Client{},
+		DbConnection: connDB,
+		Name:         setting.Name,
 	}, nil
 }
 
 func (s *instanceSettings) Dispose() {
-	// Called before creatinga a new instance to allow plugin authors
-	// to cleanup.
+	s.DbConnection.Close()
+	log.DefaultLogger.Info(fmt.Sprintf("db connections of datasource %s closed", s.Name))
 }

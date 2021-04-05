@@ -15,6 +15,9 @@ type datasourceConfig struct {
 	UsePreparedStatement       bool   `json:"usePreparedStatement"`
 	User                       string `json:"user"`
 	SSlMode                    string `json:"sslMode,omitempty"`
+	MaxOpenConnections         int    `json:"maxOpenConnections"`
+	MaxIdealConnections        int    `json:"maxIdealConnections"`
+	MaxConnectionIdealTime     int    `json:"maxConnectionIdealTime"`
 }
 
 func (config *datasourceConfig) ConnectionURL(password string) string {
