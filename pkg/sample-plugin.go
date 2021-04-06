@@ -41,15 +41,15 @@ type VerticaDatasource struct {
 	im instancemgmt.InstanceManager
 }
 
-//GetVerticaConnection will return the vertica db connection
+//GetVerticaDb will return the vertica db connection
 //stored in the instance setting when the instance is created or update
-func (td *VerticaDatasource) GetVerticaConnection(pluginContext backend.PluginContext) (*sql.DB, error) {
+func (td *VerticaDatasource) GetVerticaDb(pluginContext backend.PluginContext) (*sql.DB, error) {
 	instance, err := td.im.Get(pluginContext)
 	if err != nil {
 		return nil, err
 	}
 	if instanceSetting, ok := instance.(*instanceSettings); ok {
-		return instanceSetting.DbConnection, nil
+		return instanceSetting.Db, nil
 	} else {
 		return nil, err
 	}
@@ -66,14 +66,14 @@ func (td *VerticaDatasource) QueryData(ctx context.Context, req *backend.QueryDa
 	// create response struct
 	response := backend.NewQueryDataResponse()
 
-	connDB, err := td.GetVerticaConnection(req.PluginContext)
+	db, err := td.GetVerticaDb(req.PluginContext)
 	if err != nil {
 		return nil, err
 	}
 
 	// loop over queries and execute them individually.
 	for _, q := range req.Queries {
-		res := td.query(ctx, q, connDB)
+		res := td.query(ctx, q, db)
 
 		// save the response in a hashmap
 		// based on with RefID as identifier
@@ -88,19 +88,27 @@ type queryModel struct {
 	QueryTemplated string `json:"queryTemplated,omitempty"`
 }
 
-func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, connDB *sql.DB) backend.DataResponse {
+func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, db *sql.DB) backend.DataResponse {
 	// Unmarshal the json into our queryModel
 	var qm queryModel
 
 	response := backend.DataResponse{}
-
+	// https://golang.org/pkg/database/sql/#DBStats
+	log.DefaultLogger.Info(fmt.Sprintf("stats before query: %v", db.Stats()))
 	response.Error = json.Unmarshal(query.JSON, &qm)
 	if response.Error != nil {
 		return response
 	}
 
+	connection, err := db.Conn(ctx)
+	if err != nil {
+		response.Error = err
+		return response
+	}
+
+	defer connection.Close()
 	//run query
-	rows, err := connDB.QueryContext(ctx, qm.QueryTemplated)
+	rows, err := connection.QueryContext(ctx, qm.QueryTemplated)
 	if err != nil {
 		response.Error = err
 		return response
@@ -142,7 +150,8 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 		longFrame.AppendRow(rowIn...)
 
 	}
-
+	// https://golang.org/pkg/database/sql/#DBStats
+	log.DefaultLogger.Info(fmt.Sprintf("stats after query: %v", db.Stats()))
 	//here instead of asking the user to pass the query type,
 	//based on the frame we can just judge the type of the frame.
 	//this use full when the user writes a variable query
@@ -172,15 +181,24 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	var status = backend.HealthStatusOk
 
-	connDB, err := td.GetVerticaConnection(req.PluginContext)
+	db, err := td.GetVerticaDb(req.PluginContext)
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: fmt.Sprintf("%s", err),
 		}, nil
 	}
-
-	result, err := connDB.QueryContext(ctx, "SELECT version()")
+	// https://golang.org/pkg/database/sql/#DBStats
+	log.DefaultLogger.Info(fmt.Sprintf("stats before query: %v", db.Stats()))
+	connection, err := db.Conn(ctx)
+	if err != nil {
+		return &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: fmt.Sprintf("%s", err),
+		}, nil
+	}
+	defer connection.Close()
+	result, err := connection.QueryContext(ctx, "SELECT version()")
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
@@ -199,7 +217,8 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 			}, nil
 		}
 	}
-
+	// https://golang.org/pkg/database/sql/#DBStats
+	log.DefaultLogger.Info(fmt.Sprintf("stats after query: %v", db.Stats()))
 	return &backend.CheckHealthResult{
 		Status:  status,
 		Message: fmt.Sprintf("Successfully connected to %s", queryResult),
@@ -207,9 +226,9 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 }
 
 type instanceSettings struct {
-	httpClient   *http.Client
-	DbConnection *sql.DB
-	Name         string
+	httpClient *http.Client
+	Db         *sql.DB
+	Name       string
 }
 
 // newDataSourceInstance is called always when a datasource is created or updated in the ui
@@ -222,22 +241,22 @@ func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instance
 		log.DefaultLogger.Error(err.Error())
 	}
 	connStr := config.ConnectionURL(secret)
-	connDB, err := sql.Open("vertica", connStr)
+	db, err := sql.Open("vertica", connStr)
 	if err != nil {
 		return nil, err
 	}
-	connDB.SetMaxOpenConns(config.MaxOpenConnections)
-	connDB.SetMaxIdleConns(config.MaxIdealConnections)
-	connDB.SetConnMaxIdleTime(time.Minute * time.Duration(config.MaxConnectionIdealTime))
+	db.SetMaxOpenConns(config.MaxOpenConnections)
+	db.SetMaxIdleConns(config.MaxIdealConnections)
+	db.SetConnMaxIdleTime(time.Minute * time.Duration(config.MaxConnectionIdealTime))
 	log.DefaultLogger.Info(fmt.Sprintf("new instance of datasource %s created", setting.Name))
 	return &instanceSettings{
-		httpClient:   &http.Client{},
-		DbConnection: connDB,
-		Name:         setting.Name,
+		httpClient: &http.Client{},
+		Db:         db,
+		Name:       setting.Name,
 	}, nil
 }
 
 func (s *instanceSettings) Dispose() {
-	s.DbConnection.Close()
+	s.Db.Close()
 	log.DefaultLogger.Info(fmt.Sprintf("db connections of datasource %s closed", s.Name))
 }
