@@ -163,4 +163,8 @@ Build
  1. **Frontend** yarn build 
  2. **Backend** mage -v
 
+Testing
+ 1. sudo docker-compose up
+This will run a local vertica and grafana instacne
+
 

@@ -1,6 +1,6 @@
 {
   "name": "rajsameer-vertica-datasource",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "vertica grafana data source sql",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
