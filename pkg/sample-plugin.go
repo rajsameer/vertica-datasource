@@ -139,7 +139,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//so by default a long frame will be created.
 	//We can generate the column types, using the info from coluymnTypes.
 	// use the name (refId in query json) of the query as frame name
-	longFrame := data.NewFrameOfFieldTypes(qm.RefId, 0, generateFrameType(columnTypes)...)
+	longFrame := data.NewFrameOfFieldTypes("Long", 0, generateFrameType(columnTypes)...)
 	//setting the header names to the frame , the names are same as return by the driver.
 	longFrame.SetFieldNames(columns...)
 
@@ -167,7 +167,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	} else if longFrame.TimeSeriesSchema().Type == data.TimeSeriesTypeWide {
 		response.Frames = append(response.Frames, longFrame)
 	} else if longFrame.Rows() == 0 {
-		response.Frames = append(response.Frames, data.NewFrame("empty"))
+		response.Frames = append(response.Frames, data.NewFrame("Long"))
 
 	} else {
 		wideFrame, err := data.LongToWide(longFrame, nil)
