@@ -159,12 +159,15 @@ Prerequisite
  2. Go version 1.14+
  3. yarn
 
+Install
+ 1. yarn install
+
 Build
  1. **Frontend** yarn build 
  2. **Backend** mage -v
 
 Testing
  1. sudo docker-compose up
-This will run a local vertica and grafana instacne
+This will run a local vertica and grafana instance.
 
 
