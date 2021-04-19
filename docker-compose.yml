@@ -1,0 +1,22 @@
+version: '2.1'
+services:
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "rajsameer-vertica-datasource"
+    #   GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+    volumes:
+      - ./dist:/var/lib/grafana/plugins/rajsameer-vertica-datasource
+      - ./datasource:/etc/grafana/provisioning/datasources
+      - ./dashboards:/etc/grafana/provisioning/dashboards
+      - ./dashboard:/var/lib/grafana/dashboards
+    ports:
+      - "3007:3000"
+  vertica:
+    image: jbfavre/vertica:9.2.0-7_debian-8
+    environment:
+      DATABASE_NAME: vdb
+      DATABASE_PASSWORD: dbadmin
+    ports:
+      - "5433:5433"

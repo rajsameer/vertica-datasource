@@ -1,0 +1,28 @@
+apiVersion: 1
+deleteDatasources:
+  - name: Vertica
+    orgId: 1
+datasources:
+  - name: Vertica
+    version: 1
+    type: rajsameer-vertica-datasource
+    access: proxy
+    orgId: 1
+    url: ""
+    password: ""
+    user: ""
+    database: ""
+    basicAuth: false
+    basicAuthPassword: ""
+    basicAuthUser: ""
+    withCredentials: false
+    jsonData:
+      database: "vdb"
+      host: "vertica:5433"
+      maxIdealConnections: 2
+      maxOpenConnections: 2
+      usePreparedStatement: true
+      user: "dbadmin"
+      maxConnectionIdealTime: 5
+    secureJsonData:
+      password: dbadmin

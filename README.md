@@ -57,6 +57,7 @@ systemctl restart grafana-server
 - SSL Mode: Three options are supported "none", "server", "server-string". This option states how the plugin connetes to the data source.
 - Use Prepared Statement: If not set, query arguments will be interpolated into the query on the client side. If set, query arguments will be bound on the server.
 - Use Connection Load balancing: If set the query will be distrubted to vertica nodes
+- Set Max Open Connection, Ideal Connections and Max connection ideal time
 2. Save and test the data source.
 For testing the connectivity "select version()" query is executed on the database.
 
@@ -143,11 +144,23 @@ systemctl restart grafana-server
 ```
 3. Get the pid of the plugin process 
 ```BASH 
-systemctl restart grafana-server
+pgrep vertica
 ```
 4. Use the pid from 3 step and use it in the below statment to start debugger
 ```BASH 
 dlv attach <"pid from step 3"> --headless --listen=:3222 --api-version 2 --log
 ```
 5. Now you can use the vscode and debug option , configuration debugging is present in launch.json
+
+## Devlopment
+
+Prerequisite
+ 1. Node JS 14+
+ 2. Go version 1.14+
+ 3. yarn
+
+Build
+ 1. **Frontend** yarn build 
+ 2. **Backend** mage -v
+
 

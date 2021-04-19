@@ -86,6 +86,8 @@ func (td *VerticaDatasource) QueryData(ctx context.Context, req *backend.QueryDa
 type queryModel struct {
 	QueryString    string `json:"queryString"`
 	QueryTemplated string `json:"queryTemplated,omitempty"`
+	Hide           bool   `json:"hide,omnitempty"`
+	RefId          string `json:"refId,omitempty"`
 }
 
 func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, db *sql.DB) backend.DataResponse {
@@ -97,6 +99,10 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	log.DefaultLogger.Info(fmt.Sprintf("stats before query: %v", db.Stats()))
 	response.Error = json.Unmarshal(query.JSON, &qm)
 	if response.Error != nil {
+		return response
+	}
+	// return empty response when query.hide == true
+	if qm.Hide {
 		return response
 	}
 
@@ -132,7 +138,8 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//most of the SQL data source will return mostly a Long frame.
 	//so by default a long frame will be created.
 	//We can generate the column types, using the info from coluymnTypes.
-	longFrame := data.NewFrameOfFieldTypes("Long", 0, generateFrameType(columnTypes)...)
+	// use the name (refId in query json) of the query as frame name
+	longFrame := data.NewFrameOfFieldTypes(qm.RefId, 0, generateFrameType(columnTypes)...)
 	//setting the header names to the frame , the names are same as return by the driver.
 	longFrame.SetFieldNames(columns...)
 
