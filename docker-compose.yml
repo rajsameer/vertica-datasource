@@ -15,8 +15,13 @@ services:
       - "3007:3000"
   vertica:
     image: jbfavre/vertica:9.2.0-7_debian-8
+    cap_add:
+      - SYS_NICE
+      - SYS_RESOURCE
+      - SYS_PTRACE
     environment:
-      DATABASE_NAME: vdb
-      DATABASE_PASSWORD: dbadmin
-    ports:
-      - "5433:5433"
+      - DATABASE_NAME: vdb
+      - DATABASE_PASSWORD: dbadmin
+    expose:
+      - "5433/tcp"
+
