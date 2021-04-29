@@ -130,6 +130,25 @@ Annotaions are supported from grafana 7.2+
 Inorder to use annotations, you can write any wuery which will return time, timeEnd, text, title and tags column as shown in the image.
 And you are good to go
 
+## Streaming (new)
+Added support for streaming
+![](src/img/vertica-streaming.gif)
+
+
+Example Query
+```SQL
+  SELECT 
+    end_time as time , 
+    avg(average_cpu_usage_percent)
+  FROM 
+   v_monitor.cpu_usage 
+  WHERE 
+   end_time > TIMESTAMPADD(MINUTE, -1 , CURRENT_TIMESTAMP)
+  GROUP BY 1
+  ORDER BY 1 asc
+```
+This will get the latest data from the data base and keep appending the samples.
+
 ## Debugging
 
 You can debugg the backed code using dlv.
@@ -160,14 +179,24 @@ Prerequisite
  3. yarn
 
 Install
- 1. yarn install
-
+```BASH
+yarn install
+```
 Build
- 1. **Frontend** yarn build 
+ 1. **Frontend** 
+    ```BASH
+    yarn build
+    ``` 
  2. **Backend** mage -v
+    ```BASH
+    mage -v
+    ``` 
 
-Testing
- 1. sudo docker-compose up
+## Testing
+ ```BASH
+sudo docker-compose up
+```
 This will run a local vertica and grafana instance.
+A data source and data source will already be provisend 
 
 

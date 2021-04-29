@@ -3,6 +3,8 @@ import { DataQuery, DataSourceJsonData } from '@grafana/data';
 export interface VerticaQuery extends DataQuery {
   queryString: string;
   queryTemplated: string;
+  streaming: boolean;
+  streamingInterval: number;
 }
 
 export const defaultQuery: Partial<VerticaQuery> = {
@@ -16,6 +18,8 @@ export const defaultQuery: Partial<VerticaQuery> = {
    end_time > TO_TIMESTAMP($__from/1000) and end_time < TO_TIMESTAMP($__to/1000)
   GROUP BY 1, 2
   ORDER BY 1 asc`,
+  streaming: false,
+  streamingInterval: 1,
 };
 
 /**

@@ -20,8 +20,8 @@ services:
       - SYS_RESOURCE
       - SYS_PTRACE
     environment:
-      - DATABASE_NAME: vdb
-      - DATABASE_PASSWORD: dbadmin
+      - DATABASE_NAME=vdb
+      - DATABASE_PASSWORD=dbadmin
     expose:
       - "5433/tcp"
 

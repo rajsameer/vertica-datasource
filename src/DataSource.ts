@@ -1,6 +1,19 @@
-import { DataSourceInstanceSettings, MetricFindValue, DataFrame, ScopedVars } from '@grafana/data';
+import {
+  DataSourceInstanceSettings,
+  MetricFindValue,
+  DataFrame,
+  ScopedVars,
+  DataQueryRequest,
+  DataQueryResponse,
+  CircularDataFrame,
+  LoadingState,
+  Field,
+} from '@grafana/data';
 import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
-import { VerticaDataSourceOptions, VerticaQuery } from './types';
+import { defaultQuery, VerticaDataSourceOptions, VerticaQuery } from './types';
+import { Observable, merge, Subscriber } from 'rxjs';
+import { defaults } from 'lodash';
+import { switchMap as switchMap$ } from 'rxjs/operators';
 
 export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataSourceOptions> {
   templateSrv;
@@ -68,5 +81,164 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
       findVal.push(metricValue);
     }
     return findVal;
+  }
+
+  query(options: DataQueryRequest<VerticaQuery>): Observable<DataQueryResponse> {
+    /*
+    grafana panles can have multiple queries
+    here if a panel has multiple queries we and not all of them have refresh , we throw an error forcing all the queries to have refresh enbaled
+    */
+    const queriesWithStream = options.targets.filter((target) => target.streaming === true).length;
+    /*
+    Below switch statement run 3 conditions , if all queries are streaming then handel streaming
+    if none of the queries are streaming that use the default query option
+    if partial queries are streaing then throw and error
+    */
+    switch (true) {
+      case queriesWithStream > 0 && queriesWithStream !== options.targets.length: {
+        return new Observable<DataQueryResponse>((subscriber) => {
+          subscriber.error(
+            `All queries in a panel need to be stream enabled, if using streaming. Total Queries: ${
+              options.targets.length
+            } Queries with streaming: ${options.targets.filter((target) => target.streaming === true).length}
+          `
+          );
+        });
+      }
+      case queriesWithStream > 0 && queriesWithStream === options.targets.length: {
+        /*
+        we loop over all the queries in a panel and create stream for them
+        */
+        const streams = options.targets.map((target) => {
+          /*
+          if no queries are defined then use the default query
+          */
+          const query = defaults(target, defaultQuery);
+          return new Observable<DataQueryResponse>((subscriber) => {
+            /* 
+            creating a circular frame
+            capacity is set to maxDataPoints from the panel option
+            */
+            const frame = new CircularDataFrame({
+              append: 'tail',
+              capacity: options.maxDataPoints ? options.maxDataPoints : 1000,
+            });
+            frame.refId = query.refId;
+            /*
+            stream data takes the circular frame, add fields from the backend query, if updateFields is true , then new fields are added to the frame.
+            reason doing this , in sql we donot know how amny time frames might be returned. 
+            so on the first run of the data we update the fields of the frame
+            */
+            this.streamData(frame, target, true, subscriber);
+            /*
+            based on the invterval input by this below funtion will fire the query to the backend and append the data to the frame.
+            */
+            const intervalId = setInterval(async () => {
+              await this.streamData(frame, target, false, subscriber);
+            }, query.streamingInterval * 1000);
+            return () => {
+              clearInterval(intervalId);
+            };
+          });
+        });
+        return merge(...streams);
+      }
+      default: {
+        return super.query(options);
+      }
+    }
+  }
+
+  async streamData(
+    frame: CircularDataFrame,
+    target: VerticaQuery,
+    firstRun: boolean,
+    subscriber: Subscriber<DataQueryResponse>
+  ) {
+    /*
+    values is the variable that holds the data
+    */
+    let values: any[] = [];
+    const data: DataFrame = await this.query({
+      targets: [
+        {
+          queryString: target.queryString,
+          queryTemplated: target.queryTemplated,
+        },
+      ],
+    } as DataQueryRequest<VerticaQuery>)
+      .pipe(
+        switchMap$((response) => {
+          if (response.error) {
+            subscriber.error({
+              err: response.error,
+              message: response.error.message,
+            });
+          }
+          return response.data;
+        })
+      )
+      .toPromise();
+    /*
+    For now all streamig queries need to have a time field.
+    Might remove this based on community feedback.
+    If this plugin recives any :P
+    */
+    if (data && data.fields.find((f: Field) => f.type === 'time')) {
+      data.fields.forEach((f) => {
+        if (firstRun) {
+          frame.addField({
+            name: f.name,
+            type: f.type,
+            config: f.config,
+            display: f.display,
+            labels: f.labels,
+            parse: f.parse,
+            state: f.state,
+          });
+        } else {
+          const fieldValues = f.values.toArray();
+          /* 
+          push field values into an array to mimic rows 
+          */
+          values.push(fieldValues[fieldValues.length - 1]);
+        }
+      });
+      if (!firstRun) {
+        /* 
+        append rows to the frame
+        */
+        frame.appendRow(values);
+      }
+      /* 
+      For the first run add all values to the frame
+      */
+      if (firstRun) {
+        const timeField = data.fields.find((f: Field) => f.type === 'time');
+        if (timeField) {
+          const timeEntries = timeField.values.toArray();
+          for (let i = 0; i < timeEntries.length; i++) {
+            const val = data.fields.map((f) => f.values.toArray()[i]);
+            frame.appendRow(val);
+          }
+        }
+      }
+    } else {
+      /*
+      throw any error if there is no time field
+      */
+      subscriber.error({
+        err: 'Query should return alteast one time frame',
+        message: 'Query should return alteast one time frame',
+      });
+    }
+    /*
+    call the next on subscribe to feed data to visulaization
+    */
+    subscriber.next({
+      data: [frame],
+      key: frame.refId,
+      state: LoadingState.Streaming,
+    });
   }
 }
