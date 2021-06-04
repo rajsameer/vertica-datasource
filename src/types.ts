@@ -1,10 +1,14 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
 export interface VerticaQuery extends DataQuery {
+  queryType: 'Time Series' | 'Table';
   queryString: string;
   queryTemplated: string;
   streaming: boolean;
   streamingInterval: number;
+  timeFillEnabled: boolean;
+  timeFillMode: 'static' | 'null';
+  timeFillStaticValue: number;
 }
 
 export const defaultQuery: Partial<VerticaQuery> = {
