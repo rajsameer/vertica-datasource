@@ -1,62 +1,20 @@
 ![Release](https://github.com/rajsameer/vertica-datasource/workflows/Release/badge.svg)
 # Vertica Grafana Data Source
-This is a work-in-progress Grafana plugin to support the Vertica database.
-
+Grafana plugin to support the query from Vertica database.
 It defines a new datsource that communicates with Vertica using the Vertica golang driver. [http://github.com/vertica/vertica-sql-go]. This pulugin is a backend data source plugin.
-
-## Installtion
-As of now this plugin is not singed , so you will have to clone the repo and then build it.
-Steps to install the plugin.
-### Prerequisite
-You should have 
-1. Node 12.x installed.
-2. Yarn installed.
-3. Golang installed.
-4. Mage installed.
-### Building the plugin
-1. Clone the repo to the grafana plugins director.
-```BASH 
-git clone https://github.com/vertica/vertica-grafana-datasource.git
-cd vertica-grafana-datasource
-```
-2. Frontend install and build.
-```BASH 
-yarn install
-yarn build
-```
-3. Backend install and build.
-```BASH 
-mage -v
-```
-3. Change the grafana.ini to allow un singed plugin.
-Under the plugins section, uncomment the allow_loading_unsigned_plugins line and add vertica-grafana-datasource. 
-```BASH 
-[plugins]
-;enable_alpha = false
-;app_tls_skip_verify_insecure = false
-# Enter a comma-separated list of plugin identifiers to identify plugins that are allowed to be loaded even if they lack a valid signature.
-allow_loading_unsigned_plugins = rajsameer-vertica-datasource
-;marketplace_url = https://grafana.com/grafana/plugins/
-```
-4. Restart grafana to load the plugin.
-You might require sudo privileges
-```BASH 
-systemctl restart grafana-server
-```
-
 
 ## Using the plugin
 ### Adding the data source
 1. Use the add data source option in grafana.
 ![](src/img/vertica-ds-conf.png)
-- Name: Data source name
-- Host: Ip and port of vertica data base , example: <vertica-ip>:<vertica-port>
-- Database: data base name
-- User: User name of vertica db. Note: use a user name with less privileges. This data source doe not prevent use from executing DELETE or DROP commands.
-- Password: password for vertica DB.
-- SSL Mode: Three options are supported "none", "server", "server-string". This option states how the plugin connetes to the data source.
-- Use Prepared Statement: If not set, query arguments will be interpolated into the query on the client side. If set, query arguments will be bound on the server.
-- Use Connection Load balancing: If set the query will be distrubted to vertica nodes
+- **Name**: Data source name
+- **Host**: Ip and port of vertica data base , example: <vertica-ip>:<vertica-port>
+- **Database**: data base name
+- **User**: User name of vertica db. Note: use a user name with less privileges. This data source doe not prevent use from executing DELETE or DROP commands.
+- **Password**: password for vertica DB.
+- **SSL Mode**: Three options are supported "none", "server", "server-string". This option states how the plugin connetes to the data source.
+- **Use Prepared Statement**: If not set, query arguments will be interpolated into the query on the client side. If set, query arguments will be bound on the server.
+- **Use Connection Load balancing**: If set the query will be distrubted to vertica nodes
 - Set Max Open Connection, Ideal Connections and Max connection ideal time
 2. Save and test the data source.
 For testing the connectivity "select version()" query is executed on the database.
@@ -66,9 +24,8 @@ For testing the connectivity "select version()" query is executed on the databas
 To lean more about data frames please refer. https://grafana.com/docs/grafana/latest/developers/plugins/data-frames/#data-frames
 
 - Time series queries.
-The user does not need to specefiy explicitly the query type.
-If a query has single time column , then the query is considered as time series.
-Time Series Query:
+Query type supported aare time series and table. Can be changed using the drop down in the query editor.
+Exxample Time Series Query:
 ~~~~sql
 SELECT 
 time_slice(end_time, $__interval_ms, 'ms', 'end') as time , 
@@ -83,7 +40,7 @@ ORDER BY 1 asc
 ~~~~
 
 We have specefically node used any macros that get implemneted in the backed, Most of the transformation is done using Vertica SQL function and grafana global variables.
-Example: "time_slice(end_time, $__interval_ms, 'ms', 'end') as time" following statment helps the quey to honor the intreval of visulization. $__interval_ms is a grafana global variables.
+Example: "time_slice(end_time, $__interval_ms, 'ms', 'end') as time" following statment helps the quey to honor the interval of visulization. $__interval_ms is a grafana global variables.
 Time filter: 
 Example: "end_time > TO_TIMESTAMP($__from/1000) and end_time < TO_TIMESTAMP($__to/1000)"  this convert the the global $__from and $__to variables from grafana, to a timestamp format for vertica.
 
@@ -100,13 +57,13 @@ message
 from v_monitor.ERROR_MESSAGES
 where event_timestamp > sysdate() -1/24 and error_level != 'INFO'
 ~~~~
-Any query without time column is returned as in a Long format and can be esily visualized as a table.
+Select the drop down as table to visualize.
 
 Visualization:
 ![](src/img/vertica-query-table.png)
 
-### Variables:
-Varibales can be esily defined as sql queries, the only restriction we have is query shoyld return at least one column with "_text" name.
+### Variablels:
+Varibales can be esily defined as sql queries, the only restriction we have is query should return at least one column with "_text" name.
 If the query has two columns "_text" and "_value", _text would be used as the display value and _value would be applied to filter.
 
 Example:
@@ -134,7 +91,6 @@ And you are good to go
 Added support for streaming
 ![](src/img/vertica-streaming.gif)
 
-
 Example Query
 ```SQL
   SELECT 
@@ -148,6 +104,12 @@ Example Query
   ORDER BY 1 asc
 ```
 This will get the latest data from the data base and keep appending the samples.
+
+## Time gap filling (new)
+Time gap filling feature can be used to fill time gaps in the sql data.
+
+## SQL syntax highlighting
+SQL sysntax highlighing added using CodeMirror library
 
 ## Debugging
 

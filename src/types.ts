@@ -6,8 +6,9 @@ export interface VerticaQuery extends DataQuery {
   queryTemplated: string;
   streaming: boolean;
   streamingInterval: number;
-  timeBucketGapFill: boolean;
-  timeFillValue: 'zero' | 'null' | 'previous';
+  timeFillEnabled: boolean;
+  timeFillMode: 'static' | 'null';
+  timeFillStaticValue: number;
 }
 
 export const defaultQuery: Partial<VerticaQuery> = {

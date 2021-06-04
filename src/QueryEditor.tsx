@@ -2,7 +2,7 @@ import defaults from 'lodash/defaults';
 
 import React, { PureComponent, FormEvent } from 'react';
 import { config } from '@grafana/runtime';
-import { InlineLabel, InlineFieldRow, InlineSwitch, InlineField, Input, Select } from '@grafana/ui';
+import { InlineLabel, InlineFieldRow, InlineSwitch, InlineField, Input, Select, Button } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './DataSource';
 import { defaultQuery, VerticaDataSourceOptions, VerticaQuery } from './types';
@@ -18,59 +18,65 @@ type Props = QueryEditorProps<DataSource, VerticaQuery, VerticaDataSourceOptions
 
 export class QueryEditor extends PureComponent<Props> {
   onQueryTextChange = (editor: any, data: any, value: string) => {
-    const { onChange, query, onRunQuery } = this.props;
+    const { onChange, query } = this.props;
     onChange({ ...query, queryString: value });
-    onRunQuery();
   };
   onStreamingSwitchChange = (event: FormEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
+    const { onChange, query } = this.props;
     onChange({ ...query, streaming: event.currentTarget.checked });
-    onRunQuery();
   };
   onStreamingIntervalChange = (event: FormEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
+    const { onChange, query } = this.props;
     onChange({ ...query, streamingInterval: event.currentTarget.valueAsNumber });
+  };
+  onTimeFillEnabledSwitchChange = (event: FormEvent<HTMLInputElement>) => {
+    const { onChange, query } = this.props;
+    onChange({ ...query, timeFillEnabled: event.currentTarget.checked });
+  };
+  onRunButtonClick = () => {
+    const { onRunQuery } = this.props;
     onRunQuery();
   };
-  onTimeBucketGapFillSwitchChange = (event: FormEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({ ...query, timeBucketGapFill: event.currentTarget.checked });
-    onRunQuery();
-  };
-  onTimeFillValueChange = (selectedValue: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    let val: 'zero' | 'null' | 'previous';
+  onTimeFillModeValueChange = (selectedValue: SelectableValue<string>) => {
+    const { onChange, query } = this.props;
+    let val: 'static' | 'null';
     switch (selectedValue.value) {
-      case 'zero':
-        val = 'zero';
+      case 'static':
+        val = 'static';
         break;
       case 'null':
         val = 'null';
         break;
-      case 'previous':
-        val = 'previous';
-        break;
       default:
         val = 'null';
     }
-    onChange({ ...query, timeFillValue: val });
-    onRunQuery();
+    onChange({ ...query, timeFillMode: val });
   };
   onQueryTypeChange = (selectedValue: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = this.props;
+    const { onChange, query } = this.props;
     switch (selectedValue.value) {
       case 'Table':
-        onChange({ ...query, queryType: 'Table', streaming: false, timeBucketGapFill: false });
+        onChange({ ...query, queryType: 'Table', streaming: false, timeFillEnabled: false });
         break;
       default:
         onChange({ ...query, queryType: 'Time Series' });
     }
-    onRunQuery();
   };
-
+  onTimeFillStaticValue = (event: FormEvent<HTMLInputElement>) => {
+    const { onChange, query } = this.props;
+    onChange({ ...query, timeFillStaticValue: event.currentTarget.valueAsNumber });
+  };
   render() {
     const query = defaults(this.props.query, defaultQuery);
-    const { queryString, streaming, streamingInterval, timeBucketGapFill, timeFillValue, queryType } = query;
+    const {
+      queryString,
+      streaming,
+      streamingInterval,
+      timeFillEnabled,
+      timeFillMode,
+      timeFillStaticValue,
+      queryType,
+    } = query;
     return (
       <div className="gf-form-group">
         <div className="gf-form">
@@ -141,22 +147,33 @@ export class QueryEditor extends PureComponent<Props> {
                 label="Time gap fill"
                 tooltip="Used to fill time gaps in the query result, run on the backend data source"
               >
-                <InlineSwitch value={timeBucketGapFill} css={{}} onChange={this.onTimeBucketGapFillSwitchChange} />
+                <InlineSwitch value={timeFillEnabled} css={{}} onChange={this.onTimeFillEnabledSwitchChange} />
               </InlineField>
             )}
-            {queryType === 'Time Series' && timeBucketGapFill && (
+            {queryType === 'Time Series' && timeFillEnabled && (
               <InlineField label="Fill value" tooltip="Value to fill in non existent time">
                 <Select
                   options={[
-                    { label: 'zero', value: 'zero' },
+                    { label: 'static', value: 'static' },
                     { label: 'null', value: 'null' },
-                    { label: 'previous', value: 'previous' },
                   ]}
-                  value={{ label: timeFillValue || 'null', value: timeFillValue || 'null' }}
-                  onChange={this.onTimeFillValueChange}
+                  value={{ label: timeFillMode || 'null', value: timeFillMode || 'null' }}
+                  onChange={this.onTimeFillModeValueChange}
                 />
               </InlineField>
             )}
+            {queryType === 'Time Series' && timeFillEnabled && timeFillMode === 'static' && (
+              <InlineField label="Fill value" tooltip="value that replcase the null time gaps">
+                <Input css={{}} type="number" value={timeFillStaticValue || 0} onChange={this.onTimeFillStaticValue} />
+              </InlineField>
+            )}
+          </InlineFieldRow>
+        </div>
+        <div className="gf-form">
+          <InlineFieldRow>
+            <Button variant="primary" size="md" onClick={this.onRunButtonClick}>
+              Run
+            </Button>
           </InlineFieldRow>
         </div>
       </div>

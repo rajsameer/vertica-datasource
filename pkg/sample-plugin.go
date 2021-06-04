@@ -84,10 +84,17 @@ func (td *VerticaDatasource) QueryData(ctx context.Context, req *backend.QueryDa
 }
 
 type queryModel struct {
-	QueryString    string `json:"queryString"`
-	QueryTemplated string `json:"queryTemplated,omitempty"`
-	Hide           bool   `json:"hide,omnitempty"`
-	RefId          string `json:"refId,omitempty"`
+	QueryString     string  `json:"queryString"`
+	QueryTemplated  string  `json:"queryTemplated,omitempty"`
+	Hide            bool    `json:"hide,omnitempty"`
+	RefId           string  `json:"refId,omitempty"`
+	TimeFillEnabled bool    `json:"timeFillEnabled,omitempty"`
+	TimeFillMode    string  `json:"timeFillMode,omitempty"`
+	TimeFillValue   float64 `json:"timeFillStaticValue,omitempty"`
+	QueryType       string  `json:"queryType,omitempty"`
+	IntervalMs      int     `json:"intervalMs,omitempty"`
+	From            time.Time
+	To              time.Time
 }
 
 func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, db *sql.DB) backend.DataResponse {
@@ -95,9 +102,10 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	var qm queryModel
 
 	response := backend.DataResponse{}
-	// https://golang.org/pkg/database/sql/#DBStats
-	log.DefaultLogger.Info(fmt.Sprintf("stats before query: %v", db.Stats()))
 	response.Error = json.Unmarshal(query.JSON, &qm)
+	qm.To = query.TimeRange.To
+	qm.From = query.TimeRange.From
+
 	if response.Error != nil {
 		return response
 	}
@@ -139,7 +147,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//so by default a long frame will be created.
 	//We can generate the column types, using the info from coluymnTypes.
 	// use the name (refId in query json) of the query as frame name
-	longFrame := data.NewFrameOfFieldTypes("Long", 0, generateFrameType(columnTypes)...)
+	longFrame := data.NewFrameOfFieldTypes(qm.RefId, 0, generateFrameType(columnTypes)...)
 	//setting the header names to the frame , the names are same as return by the driver.
 	longFrame.SetFieldNames(columns...)
 
@@ -157,27 +165,38 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 		longFrame.AppendRow(rowIn...)
 
 	}
-	// https://golang.org/pkg/database/sql/#DBStats
-	log.DefaultLogger.Info(fmt.Sprintf("stats after query: %v", db.Stats()))
-	//here instead of asking the user to pass the query type,
-	//based on the frame we can just judge the type of the frame.
-	//this use full when the user writes a variable query
-	if longFrame.TimeSeriesSchema().Type == data.TimeSeriesTypeNot {
-		response.Frames = append(response.Frames, longFrame)
-	} else if longFrame.TimeSeriesSchema().Type == data.TimeSeriesTypeWide {
-		response.Frames = append(response.Frames, longFrame)
-	} else if longFrame.Rows() == 0 {
-		response.Frames = append(response.Frames, data.NewFrame("Long"))
+	//will use the queryType parameter from query to format the time series
+	switch qm.QueryType {
+	case "Time Series":
+		if longFrame.Rows() == 0 {
+			response.Frames = append(response.Frames, data.NewFrame(qm.RefId))
+		} else {
+			wideFrame, err := data.LongToWide(longFrame, nil)
+			if err != nil {
+				response.Error = err
+				return response
+			}
+			if qm.TimeFillEnabled {
+				frame, err := TimeGapFill(wideFrame, qm)
+				if err != nil {
+					response.Error = err
+					return response
+				}
+				response.Frames = append(response.Frames, frame)
+			} else {
+				response.Frames = append(response.Frames, wideFrame)
+			}
 
-	} else {
-		wideFrame, err := data.LongToWide(longFrame, nil)
-		if err != nil {
-			response.Error = err
-			return response
 		}
-		response.Frames = append(response.Frames, wideFrame)
-	}
+		break
+	default:
+		if longFrame.Rows() == 0 {
+			response.Frames = append(response.Frames, data.NewFrame(qm.RefId))
+		} else {
+			response.Frames = append(response.Frames, longFrame)
+		}
 
+	}
 	return response
 }
 
