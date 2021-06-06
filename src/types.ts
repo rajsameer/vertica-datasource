@@ -1,7 +1,7 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
 export interface VerticaQuery extends DataQuery {
-  queryType: 'Time Series' | 'Table';
+  format: 'Time Series' | 'Table';
   queryString: string;
   queryTemplated: string;
   streaming: boolean;
@@ -24,6 +24,8 @@ export const defaultQuery: Partial<VerticaQuery> = {
   ORDER BY 1 asc`,
   streaming: false,
   streamingInterval: 1,
+  format: 'Time Series',
+  timeFillEnabled: false,
 };
 
 /**

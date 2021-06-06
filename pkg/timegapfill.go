@@ -7,6 +7,11 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
+// fill time gaps in sql result
+//implementation not file
+//creates an map of time and empty rows, the time range in to and from and the interval is interval from the query
+//take the sql results and map all the rows to map , and create a new frame.
+//might change this logic in future keeping the feature
 func TimeGapFill(frame *data.Frame, qm queryModel) (*data.Frame, error) {
 	filledFrame := frame.EmptyCopy()
 	timeFieldIdx := 0
@@ -30,13 +35,13 @@ func TimeGapFill(frame *data.Frame, qm queryModel) (*data.Frame, error) {
 
 	for rowIdx := 0; rowIdx < frame.Rows(); rowIdx++ {
 		if rt, ok := frame.ConcreteAt(timeFieldIdx, rowIdx); ok {
-			if rtime, ok := rt.(time.Time); ok {
-				timeSeriesMap[rtime.Unix()] = frame.RowCopy(rowIdx)
+			if rowtime, ok := rt.(time.Time); ok {
+				timeSeriesMap[rowtime.Unix()] = frame.RowCopy(rowIdx)
 			}
 		}
 	}
 	timeKeys := make([]int, 0)
-	for key, _ := range timeSeriesMap {
+	for key := range timeSeriesMap {
 		timeKeys = append(timeKeys, int(key))
 	}
 
@@ -57,75 +62,61 @@ func GenerateRow(timeField time.Time, frame *data.Frame, fillValue interface{}) 
 		switch v.Type() {
 		case data.FieldTypeNullableTime:
 			row = append(row, timeField)
-			break
 		case data.FieldTypeTime:
 			row = append(row, timeField)
-			break
 		case data.FieldTypeFloat32:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, float32(val))
 			}
-			break
 		case data.FieldTypeNullableFloat32:
 			if val, ok := fillValue.(float64); ok {
 				converted := float32(val)
 				row = append(row, &converted)
 			}
-			break
 		case data.FieldTypeFloat64:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, val)
 			}
-			break
 		case data.FieldTypeNullableFloat64:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, &val)
 			}
-			break
 		case data.FieldTypeInt16:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int16(val))
 			}
-			break
 		case data.FieldTypeNullableInt16:
 			if val, ok := fillValue.(float64); ok {
 				converted := int16(val)
 				row = append(row, &converted)
 			}
-			break
 		case data.FieldTypeInt32:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int32(val))
 			}
-			break
 		case data.FieldTypeNullableInt32:
 			if val, ok := fillValue.(float64); ok {
 				converted := int32(val)
 				row = append(row, &converted)
 			}
-			break
 		case data.FieldTypeNullableInt64:
 			if val, ok := fillValue.(float64); ok {
 				converted := int64(val)
 				row = append(row, &converted)
 			}
-			break
 		case data.FieldTypeInt64:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int64(val))
 			}
-			break
 		case data.FieldTypeInt8:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int8(val))
 			}
-			break
 		case data.FieldTypeNullableInt8:
 			if val, ok := fillValue.(float64); ok {
 				converted := int8(val)
 				row = append(row, &converted)
 			}
-			break
 		default:
 			row = append(row, nil)
 		}

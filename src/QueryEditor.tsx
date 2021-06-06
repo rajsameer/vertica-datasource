@@ -56,10 +56,10 @@ export class QueryEditor extends PureComponent<Props> {
     const { onChange, query } = this.props;
     switch (selectedValue.value) {
       case 'Table':
-        onChange({ ...query, queryType: 'Table', streaming: false, timeFillEnabled: false });
+        onChange({ ...query, format: 'Table', streaming: false, timeFillEnabled: false });
         break;
       default:
-        onChange({ ...query, queryType: 'Time Series' });
+        onChange({ ...query, format: 'Time Series' });
     }
   };
   onTimeFillStaticValue = (event: FormEvent<HTMLInputElement>) => {
@@ -75,7 +75,7 @@ export class QueryEditor extends PureComponent<Props> {
       timeFillEnabled,
       timeFillMode,
       timeFillStaticValue,
-      queryType,
+      format,
     } = query;
     return (
       <div className="gf-form-group">
@@ -117,22 +117,22 @@ export class QueryEditor extends PureComponent<Props> {
                   { label: 'Time Series', value: 'Time Series' },
                   { label: 'Table', value: 'Table' },
                 ]}
-                value={{ label: queryType || 'Time Series', value: queryType || 'Time Series' }}
+                value={{ label: format || 'Time Series', value: format || 'Time Series' }}
                 onChange={this.onQueryTypeChange}
               />
             </InlineField>
-            {queryType === 'Time Series' && (
+            {format === 'Time Series' && (
               <InlineField
                 label="Streaming"
-                tooltip="When using streaming please use the following kind of filter 'end_time >  TIMESTAMPADD(MINUTE, -1 , CURRENT_TIMESTAMP)' you can also use $__to ,this will make sure you donot fire the query for entire time range"
+                tooltip="When using streaming please use the following kind of filter 'end_time >  TIMESTAMPADD(MINUTE, -1 , CURRENT_TIMESTAMP)' you can also use $__to ,this will make sure you do not fire the query for entire time range"
               >
                 <InlineSwitch value={streaming} css={{}} onChange={this.onStreamingSwitchChange} />
               </InlineField>
             )}
-            {queryType === 'Time Series' && streaming && (
+            {format === 'Time Series' && streaming && (
               <InlineField
                 label="Interval (seconds)"
-                tooltip="Interval in seconds, determines the frequecy in which queires are fired to the backend"
+                tooltip="Interval in seconds, determines the frequency in which queries are fired to the backend"
               >
                 <Input
                   css={{}}
@@ -142,15 +142,15 @@ export class QueryEditor extends PureComponent<Props> {
                 />
               </InlineField>
             )}
-            {queryType === 'Time Series' && (
+            {format === 'Time Series' && (
               <InlineField
                 label="Time gap fill"
-                tooltip="Used to fill time gaps in the query result, run on the backend data source"
+                tooltip="Used to fill time gaps in the query result, run on the backend data source. This does not fill a null row which has a time stamp, it adds a value if the time stamp does not exist"
               >
                 <InlineSwitch value={timeFillEnabled} css={{}} onChange={this.onTimeFillEnabledSwitchChange} />
               </InlineField>
             )}
-            {queryType === 'Time Series' && timeFillEnabled && (
+            {format === 'Time Series' && timeFillEnabled && (
               <InlineField label="Fill value" tooltip="Value to fill in non existent time">
                 <Select
                   options={[
@@ -162,8 +162,8 @@ export class QueryEditor extends PureComponent<Props> {
                 />
               </InlineField>
             )}
-            {queryType === 'Time Series' && timeFillEnabled && timeFillMode === 'static' && (
-              <InlineField label="Fill value" tooltip="value that replcase the null time gaps">
+            {format === 'Time Series' && timeFillEnabled && timeFillMode === 'static' && (
+              <InlineField label="Fill value" tooltip="value that replace the null time gaps">
                 <Input css={{}} type="number" value={timeFillStaticValue || 0} onChange={this.onTimeFillStaticValue} />
               </InlineField>
             )}

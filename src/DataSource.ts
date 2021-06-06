@@ -36,7 +36,7 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
     const response = await this.query({
       targets: [
         {
-          queryType: 'table',
+          format: 'Table',
           queryString: query,
           queryTemplated: query,
         },
@@ -59,7 +59,7 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
         break;
       case textField === undefined:
         throw new Error(
-          `Variable query must have atleast one column with name '_text' fields: ${data.fields
+          `Variable query must have at least one column with name '_text' fields: ${data.fields
             .map((x) => x.name)
             .join(',')}`
         );
@@ -85,14 +85,14 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
 
   query(options: DataQueryRequest<VerticaQuery>): Observable<DataQueryResponse> {
     /*
-    grafana panles can have multiple queries
-    here if a panel has multiple queries we and not all of them have refresh , we throw an error forcing all the queries to have refresh enbaled
+    grafana panels can have multiple queries
+    here if a panel has multiple queries we and not all of them have refresh , we throw an error forcing all the queries to have refresh enabled
     */
     const queriesWithStream = options.targets.filter((target) => target.streaming === true).length;
     /*
     Below switch statement run 3 conditions , if all queries are streaming then handel streaming
     if none of the queries are streaming that use the default query option
-    if partial queries are streaing then throw and error
+    if partial queries are streaming then throw and error
     */
     switch (true) {
       case queriesWithStream > 0 && queriesWithStream !== options.targets.length: {
@@ -126,12 +126,12 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
             frame.refId = query.refId;
             /*
             stream data takes the circular frame, add fields from the backend query, if updateFields is true , then new fields are added to the frame.
-            reason doing this , in sql we donot know how amny time frames might be returned. 
+            reason doing this , in sql we do not know how many time frames might be returned. 
             so on the first run of the data we update the fields of the frame
             */
             this.streamData(frame, target, true, subscriber);
             /*
-            based on the invterval input by this below funtion will fire the query to the backend and append the data to the frame.
+            based on the interval input by this below function will fire the query to the backend and append the data to the frame.
             */
             const intervalId = setInterval(async () => {
               await this.streamData(frame, target, false, subscriber);
@@ -180,9 +180,9 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
       )
       .toPromise();
     /*
-    For now all streamig queries need to have a time field.
+    For now all streaming queries need to have a time field.
     Might remove this based on community feedback.
-    If this plugin recives any :P
+    If this plugin receives any :P
     */
     if (data && data.fields.find((f: Field) => f.type === 'time')) {
       data.fields.forEach((f) => {
@@ -228,12 +228,12 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
       throw any error if there is no time field
       */
       subscriber.error({
-        err: 'Query should return alteast one time frame',
-        message: 'Query should return alteast one time frame',
+        err: 'Query should return at least one time frame',
+        message: 'Query should return at least one time frame',
       });
     }
     /*
-    call the next on subscribe to feed data to visulaization
+    call the next on subscribe to feed data to visualization
     */
     subscriber.next({
       data: [frame],

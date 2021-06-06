@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -46,11 +47,13 @@ type VerticaDatasource struct {
 func (td *VerticaDatasource) GetVerticaDb(pluginContext backend.PluginContext) (*sql.DB, error) {
 	instance, err := td.im.Get(pluginContext)
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("getVerticaDb: %s", err))
 		return nil, err
 	}
 	if instanceSetting, ok := instance.(*instanceSettings); ok {
 		return instanceSetting.Db, nil
 	} else {
+		log.DefaultLogger.Info(fmt.Sprintf("getVerticaDb: %s", err))
 		return nil, err
 	}
 
@@ -61,61 +64,74 @@ func (td *VerticaDatasource) GetVerticaDb(pluginContext backend.PluginContext) (
 // The QueryDataResponse contains a map of RefID to the response for each query, and each response
 // contains Frames ([]*Frame).
 func (td *VerticaDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	log.DefaultLogger.Info("QueryData", "request", req)
-
 	// create response struct
-	response := backend.NewQueryDataResponse()
+	var (
+		response = NewResponse(backend.NewQueryDataResponse())
+		wg       = sync.WaitGroup{}
+	)
+
+	wg.Add(len(req.Queries))
 
 	db, err := td.GetVerticaDb(req.PluginContext)
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("queryData :getVerticaDB: %s", err))
 		return nil, err
 	}
 
 	// loop over queries and execute them individually.
+	// added waitGroup to concurrently execute queries
+
 	for _, q := range req.Queries {
-		res := td.query(ctx, q, db)
+		go func(query backend.DataQuery) {
+			res := td.query(ctx, query, db)
+			response.Set(query.RefID, res)
+			wg.Done()
+		}(q)
 
-		// save the response in a hashmap
-		// based on with RefID as identifier
-		response.Responses[q.RefID] = res
 	}
+	wg.Wait()
 
-	return response, nil
+	return response.Response(), nil
 }
 
 type queryModel struct {
 	QueryString     string  `json:"queryString"`
 	QueryTemplated  string  `json:"queryTemplated,omitempty"`
-	Hide            bool    `json:"hide,omnitempty"`
+	Hide            bool    `json:"hide,omitempty"`
 	RefId           string  `json:"refId,omitempty"`
 	TimeFillEnabled bool    `json:"timeFillEnabled,omitempty"`
 	TimeFillMode    string  `json:"timeFillMode,omitempty"`
 	TimeFillValue   float64 `json:"timeFillStaticValue,omitempty"`
-	QueryType       string  `json:"queryType,omitempty"`
+	QueryType       string  `json:"format,omitempty"`
 	IntervalMs      int     `json:"intervalMs,omitempty"`
 	From            time.Time
 	To              time.Time
 }
 
 func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery, db *sql.DB) backend.DataResponse {
-	// Unmarshal the json into our queryModel
+	// Unmarshal the json into queryModel type
 	var qm queryModel
 
 	response := backend.DataResponse{}
-	response.Error = json.Unmarshal(query.JSON, &qm)
+	err := json.Unmarshal(query.JSON, &qm)
+	//Adding the from and To time ranges
 	qm.To = query.TimeRange.To
 	qm.From = query.TimeRange.From
 
-	if response.Error != nil {
+	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("queryData :getVerticaDB: %s", err))
+		response.Error = err
 		return response
 	}
 	// return empty response when query.hide == true
+	// do not execute query when the query panel is hidden in UI
 	if qm.Hide {
 		return response
 	}
 
 	connection, err := db.Conn(ctx)
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("queryData :connection: %s", err))
 		response.Error = err
 		return response
 	}
@@ -124,6 +140,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//run query
 	rows, err := connection.QueryContext(ctx, qm.QueryTemplated)
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("queryData :queryContext: %s", err))
 		response.Error = err
 		return response
 	}
@@ -132,20 +149,22 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//get the column names, columns will be use to added a header names to the data frame
 	columns, err := rows.Columns()
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("queryData :columns: %s", err))
 		response.Error = err
 		return response
 	}
 
-	//get the column types, column type will be used to convert column from sql type to data frame type. (implemeted in tpyes.go generateFrameType)
+	//get the column types, column type will be used to convert column from sql type to data frame type. (implemented in types.go generateFrameType)
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("queryData :columnTypes: %s", err))
 		response.Error = err
 		return response
 	}
 
-	//most of the SQL data source will return mostly a Long frame.
+	//most of the SQL data source will return mostly a long frame, if group by is used.
 	//so by default a long frame will be created.
-	//We can generate the column types, using the info from coluymnTypes.
+	//generate the column types, using the info from columnTypes.
 	// use the name (refId in query json) of the query as frame name
 	longFrame := data.NewFrameOfFieldTypes(qm.RefId, 0, generateFrameType(columnTypes)...)
 	//setting the header names to the frame , the names are same as return by the driver.
@@ -157,6 +176,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 		rowIn := generateRowIn(columnTypes)
 		err = rows.Scan(rowIn...)
 		if err != nil {
+			log.DefaultLogger.Info(fmt.Sprintf("queryData :row.Scan: %s", err))
 			response.Error = err
 			return response
 		}
@@ -168,28 +188,37 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//will use the queryType parameter from query to format the time series
 	switch qm.QueryType {
 	case "Time Series":
+		// is 0 rows received , return an empty long frame
 		if longFrame.Rows() == 0 {
 			response.Frames = append(response.Frames, data.NewFrame(qm.RefId))
 		} else {
-			wideFrame, err := data.LongToWide(longFrame, nil)
-			if err != nil {
-				response.Error = err
-				return response
-			}
-			if qm.TimeFillEnabled {
-				frame, err := TimeGapFill(wideFrame, qm)
+			//check of for frame type if not wide convert it to wide , when the query Type is time series.
+			if longFrame.TimeSeriesSchema().Type != data.TimeSeriesTypeWide {
+				wideFrame, err := data.LongToWide(longFrame, nil)
 				if err != nil {
+					log.DefaultLogger.Info(fmt.Sprintf("queryData :LongToWide: %s", err))
 					response.Error = err
 					return response
 				}
-				response.Frames = append(response.Frames, frame)
+				//fill time gaps if TimeFillEnabled is true
+				if qm.TimeFillEnabled {
+					frame, err := TimeGapFill(wideFrame, qm)
+					if err != nil {
+						log.DefaultLogger.Info(fmt.Sprintf("queryData :TimeGapFill: %s", err))
+						response.Error = err
+						return response
+					}
+					response.Frames = append(response.Frames, frame)
+				} else {
+					response.Frames = append(response.Frames, wideFrame)
+				}
 			} else {
-				response.Frames = append(response.Frames, wideFrame)
+				response.Frames = append(response.Frames, longFrame)
 			}
 
 		}
-		break
 	default:
+		//response for rest of the query types a long frame
 		if longFrame.Rows() == 0 {
 			response.Frames = append(response.Frames, data.NewFrame(qm.RefId))
 		} else {
@@ -218,6 +247,7 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 	log.DefaultLogger.Info(fmt.Sprintf("stats before query: %v", db.Stats()))
 	connection, err := db.Conn(ctx)
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("CheckHealth :connection: %s", err))
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: fmt.Sprintf("%s", err),
@@ -226,6 +256,7 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 	defer connection.Close()
 	result, err := connection.QueryContext(ctx, "SELECT version()")
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("CheckHealth :QueryContext: %s", err))
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: fmt.Sprintf("%s", err),
@@ -237,6 +268,7 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 	if result.Next() {
 		err = result.Scan(&queryResult)
 		if err != nil {
+			log.DefaultLogger.Info(fmt.Sprintf("CheckHealth :Scan: %s", err))
 			return &backend.CheckHealthResult{
 				Status:  backend.HealthStatusError,
 				Message: fmt.Sprintf("%s", err),
@@ -244,7 +276,7 @@ func (td *VerticaDatasource) CheckHealth(ctx context.Context, req *backend.Check
 		}
 	}
 	// https://golang.org/pkg/database/sql/#DBStats
-	log.DefaultLogger.Info(fmt.Sprintf("stats after query: %v", db.Stats()))
+	log.DefaultLogger.Info(fmt.Sprintf("CheckHealth: stats after query: %v", db.Stats()))
 	return &backend.CheckHealthResult{
 		Status:  status,
 		Message: fmt.Sprintf("Successfully connected to %s", queryResult),
@@ -264,7 +296,7 @@ func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instance
 	secret := setting.DecryptedSecureJSONData["password"]
 	err := json.Unmarshal(setting.JSONData, &config)
 	if err != nil {
-		log.DefaultLogger.Error(err.Error())
+		log.DefaultLogger.Error(fmt.Sprintf("newDataSourceInstance :Unmarshal: %s", err))
 	}
 	connStr := config.ConnectionURL(secret)
 	db, err := sql.Open("vertica", connStr)
@@ -274,7 +306,7 @@ func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instance
 	db.SetMaxOpenConns(config.MaxOpenConnections)
 	db.SetMaxIdleConns(config.MaxIdealConnections)
 	db.SetConnMaxIdleTime(time.Minute * time.Duration(config.MaxConnectionIdealTime))
-	log.DefaultLogger.Info(fmt.Sprintf("new instance of datasource %s created", setting.Name))
+	log.DefaultLogger.Info(fmt.Sprintf("newDataSourceInstance: new instance fo datasource created: %s", setting.Name))
 	return &instanceSettings{
 		httpClient: &http.Client{},
 		Db:         db,
