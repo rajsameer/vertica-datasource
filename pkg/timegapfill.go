@@ -67,55 +67,79 @@ func GenerateRow(timeField time.Time, frame *data.Frame, fillValue interface{}) 
 		case data.FieldTypeFloat32:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, float32(val))
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeNullableFloat32:
 			if val, ok := fillValue.(float64); ok {
 				converted := float32(val)
 				row = append(row, &converted)
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeFloat64:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, val)
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeNullableFloat64:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, &val)
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeInt16:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int16(val))
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeNullableInt16:
 			if val, ok := fillValue.(float64); ok {
 				converted := int16(val)
 				row = append(row, &converted)
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeInt32:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int32(val))
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeNullableInt32:
 			if val, ok := fillValue.(float64); ok {
 				converted := int32(val)
 				row = append(row, &converted)
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeNullableInt64:
 			if val, ok := fillValue.(float64); ok {
 				converted := int64(val)
 				row = append(row, &converted)
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeInt64:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int64(val))
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeInt8:
 			if val, ok := fillValue.(float64); ok {
 				row = append(row, int8(val))
+			} else {
+				row = append(row, nil)
 			}
 		case data.FieldTypeNullableInt8:
 			if val, ok := fillValue.(float64); ok {
 				converted := int8(val)
 				row = append(row, &converted)
+			} else {
+				row = append(row, nil)
 			}
 		default:
 			row = append(row, nil)

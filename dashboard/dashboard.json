@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1619654528849,
+  "iteration": 1623626338744,
   "links": [],
   "panels": [
     {
@@ -64,11 +64,13 @@
       "steppedLine": false,
       "targets": [
         {
+          "format": "Time Series",
           "queryString": "SELECT \n    time_slice(end_time, $__interval_ms, 'ms', 'end') as time , \n    node_name,\n    avg(average_cpu_usage_percent)\n  FROM \n   v_monitor.cpu_usage \n  WHERE \n   end_time > TO_TIMESTAMP($__from/1000) and end_time < TO_TIMESTAMP($__to/1000)\n   AND REGEXP_LIKE(NODE_NAME,'${node:regex}')\n  GROUP BY 1, 2\n  ORDER BY 1 asc",
           "queryType": "randomWalk",
           "refId": "A",
           "streaming": false,
-          "streamingInterval": 1
+          "streamingInterval": 1,
+          "timeFillEnabled": false
         }
       ],
       "thresholds": [],
@@ -158,15 +160,19 @@
       "steppedLine": false,
       "targets": [
         {
+          "format": "Time Series",
           "queryString": "select \nsysdate() as time,\nrandom() as kpia,\nrandom() as kpib,\nrandom() as kpic",
           "queryType": "randomWalk",
           "refId": "A",
           "streaming": true,
-          "streamingInterval": 1
+          "streamingInterval": 1,
+          "timeFillEnabled": false
         }
       ],
       "thresholds": [],
+      "timeFrom": null,
       "timeRegions": [],
+      "timeShift": null,
       "title": "streamng example",
       "tooltip": {
         "shared": true,
@@ -245,11 +251,13 @@
       "pluginVersion": "7.5.4",
       "targets": [
         {
+          "format": "Table",
           "queryString": "select * from DISK_STORAGE",
           "queryType": "randomWalk",
           "refId": "A",
           "streaming": false,
-          "streamingInterval": 1
+          "streamingInterval": 1,
+          "timeFillEnabled": false
         }
       ],
       "title": "table example",
@@ -264,9 +272,14 @@
       {
         "allValue": ".",
         "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
+          "selected": true,
+          "tags": [],
+          "text": [
+            "v_vdb_node0001"
+          ],
+          "value": [
+            "v_vdb_node0001"
+          ]
         },
         "datasource": "Vertica",
         "definition": "select distinct NODE_NAME as '_text' from CPU_USAGE",
@@ -292,12 +305,12 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Vertica Test",
   "uid": "Sw9yeyXGz",
-  "version": 3
+  "version": 1
 }

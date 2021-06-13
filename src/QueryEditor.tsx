@@ -7,7 +7,7 @@ import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './DataSource';
 import { defaultQuery, VerticaDataSourceOptions, VerticaQuery } from './types';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import { css, cx } from 'emotion';
+import './styles.css';
 
 require('codemirror/mode/sql/sql');
 require('codemirror/theme/moxer.css');
@@ -68,26 +68,14 @@ export class QueryEditor extends PureComponent<Props> {
   };
   render() {
     const query = defaults(this.props.query, defaultQuery);
-    const {
-      queryString,
-      streaming,
-      streamingInterval,
-      timeFillEnabled,
-      timeFillMode,
-      timeFillStaticValue,
-      format,
-    } = query;
+    const { queryString, streaming, streamingInterval, timeFillEnabled, timeFillMode, timeFillStaticValue, format } =
+      query;
     return (
       <div className="gf-form-group">
         <div className="gf-form">
           <InlineLabel width="auto"> Query </InlineLabel>
           <CodeMirror
-            className={cx(css`
-              border: 1px solid #eee;
-              height: auto;
-              width: 100%;
-              background-color: #fff;
-            `)}
+            className="QueryEditor"
             value={queryString}
             options={
               config.theme.isDark
@@ -123,7 +111,7 @@ export class QueryEditor extends PureComponent<Props> {
             </InlineField>
             {format === 'Time Series' && (
               <InlineField
-                label="Streaming"
+                label="Streaming (Beta)"
                 tooltip="When using streaming please use the following kind of filter 'end_time >  TIMESTAMPADD(MINUTE, -1 , CURRENT_TIMESTAMP)' you can also use $__to ,this will make sure you do not fire the query for entire time range"
               >
                 <InlineSwitch value={streaming} css={{}} onChange={this.onStreamingSwitchChange} />
@@ -144,7 +132,7 @@ export class QueryEditor extends PureComponent<Props> {
             )}
             {format === 'Time Series' && (
               <InlineField
-                label="Time gap fill"
+                label="Time gap fill (Beta)"
                 tooltip="Used to fill time gaps in the query result, run on the backend data source. This does not fill a null row which has a time stamp, it adds a value if the time stamp does not exist"
               >
                 <InlineSwitch value={timeFillEnabled} css={{}} onChange={this.onTimeFillEnabledSwitchChange} />
@@ -163,7 +151,7 @@ export class QueryEditor extends PureComponent<Props> {
               </InlineField>
             )}
             {format === 'Time Series' && timeFillEnabled && timeFillMode === 'static' && (
-              <InlineField label="Fill value" tooltip="value that replace the null time gaps">
+              <InlineField label="Fill value" tooltip="value to replace the null time gaps">
                 <Input css={{}} type="number" value={timeFillStaticValue || 0} onChange={this.onTimeFillStaticValue} />
               </InlineField>
             )}

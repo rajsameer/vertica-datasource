@@ -33,20 +33,25 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
     if (!query) {
       return Promise.resolve(findVal);
     }
-    const response = await this.query({
-      targets: [
-        {
-          format: 'Table',
-          queryString: query,
-          queryTemplated: query,
-        },
-      ],
-    } as any).toPromise();
+    const response = await super
+      .query({
+        targets: [
+          {
+            format: 'Table',
+            queryString: query,
+            queryTemplated: query,
+            streaming: false,
+            timeFillEnabled: false,
+            refId: 'Var',
+          },
+        ],
+      } as any)
+      .toPromise();
 
     if (response.error) {
       throw new Error(response.error.message);
     }
-
+    console.log(response);
     const data = response.data[0] as DataFrame;
     const textField = data.fields.find((f) => f.name === '_text');
     const valueField = data.fields.find((f) => f.name === '_value');
@@ -164,6 +169,8 @@ export class DataSource extends DataSourceWithBackend<VerticaQuery, VerticaDataS
         {
           queryString: target.queryString,
           queryTemplated: target.queryTemplated,
+          format: target.format,
+          refId: target.refId,
         },
       ],
     } as DataQueryRequest<VerticaQuery>)

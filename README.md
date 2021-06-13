@@ -1,31 +1,41 @@
 ![Release](https://github.com/rajsameer/vertica-datasource/workflows/Release/badge.svg)
 # Vertica Grafana Data Source
-Grafana plugin for Vertica DB.
-It defines a new data source that communicates with Vertica using the Vertica golang driver. [http://github.com/vertica/vertica-sql-go]. This plugin is a backend data source plugin.
+Grafana plugin for Vertica DB.   
+New data source that communicates with Vertica using the Vertica golang driver. [http://github.com/vertica/vertica-sql-go].    
+This plugin is a backend data source plugin.
 
 ## Using the plugin
-### Adding the data source
-1. Use the add data source option in grafana.
+
+### Installation
+```bash
+grafana-cli plugins install rajsameer-vertica-datasource
+```
+### Creating data source connection
+1. Add Data source.
 ![](src/img/vertica-ds-conf.png)
 - **Name**: Data source name
-- **Host**: Ip and port of vertica data base , example: <vertica-ip>:<vertica-port>
+- **Host**: Ip and port of vertica data base , example: *vertica-ip:vertica-port*
 - **Database**: Database name
-- **User**: User name of vertica db. Note: use a user name with less privileges. This data source doe not prevent use from executing DELETE or DROP commands.
-- **Password**: password for vertica DB.
-- **SSL Mode**: Three options are supported "none", "server", "server-string". This option states how the plugin connects to the data source.
-- **Use Prepared Statement**: If not set, query arguments will be interpolated into the query on the client side. If set, query arguments will be bound on the server. (Honestly we do not use it, it was a part of connection string so added it to the UI. Its passed to the driver though.)
-- **Use Connection Load balancing**: If set the query will be distributed to vertica nodes
+- **User**: User name of vertica database.   
+  **Note**: Use a user name with less privileges. This data source does not prevent user from executing DELETE or DROP commands.
+- **Password**: password for vertica Database.
+- **SSL Mode**: This states how the plugin will connect to the database.Options supported are as below:   
+        1. "none"
+        2. "server"
+        3. "server-string". 
+- **Use Prepared Statement**: If unchecked, query arguments will be interpolated into the query on the client side. If checked, query arguments will be bound on the server.
+- **Use Connection Load balancing**: If checked the query will be distributed to vertica nodes.
 - **Set Max Open Connection**, **Ideal Connections** and **Max connection ideal time**
 2. Save and test the data source.
-For testing the connectivity "select version()" query is executed on the database.
+To test the connectivity "select version()" query is executed against the database.
 
 ### Querying data.
-Data is returned in Data frame format.   
-To lean more about data frames please refer. https://grafana.com/docs/grafana/latest/developers/plugins/data-frames/#data-frames
+Queried data is returned to Grafana in data-frame format.   
+To lean more about data-frames please refer. https://grafana.com/docs/grafana/latest/developers/plugins/data-frames/#data-frames
 
-- Time series queries.   
-Query type supported are time series and table. Can be changed using the drop down in the query editor.   
-Example Time Series Query:   
+- **Time series queries**   
+Query type's supported are *Time Series* and *Table*. Query Type can be changed using the drop down in the query editor.   
+Example: Time Series Query    
 ~~~~sql
 SELECT 
   time_slice(end_time, $__interval_ms, 'ms', 'end') as time , 
@@ -45,7 +55,7 @@ Time filter:
 Example: "end_time > TO_TIMESTAMP($__from/1000) and end_time < TO_TIMESTAMP($__to/1000)"  this convert the the global $__from and $__to variables from grafana, to a timestamp format for vertica.   
 
 
-Table Query:
+Table Query
 ~~~~sql 
 SELECT 
   time_slice(end_time, $__interval_ms, 'ms', 'end') as time , 
@@ -58,9 +68,7 @@ WHERE
 GROUP BY 1, 2
 ORDER BY 1 asc
 ~~~~
-Select the drop down as table to visualize.
-
-Visualization:
+Choose Query Type as *Table*    
 ![](src/img/vertica-query-table.png)
 
 ### Variables:
@@ -87,7 +95,7 @@ Annotations are supported from grafana 7.2+
 
 To use annotations, write any query which will return time, timeEnd, text, title and tags column as shown in the image.   
 
-## Streaming (new)
+## Streaming (new) (beta)
 Added support for streaming
 ![](src/img/vertica-streaming.gif)
 
@@ -105,13 +113,13 @@ Example Query
 ```
 This will get the latest data from the data base and keep appending the samples.
 
-## Time gap filling (new)
-SQL data can return data which do not have sample for the entire time range , e.e you could haves gaps in the data.    
-In the new time gap filling we provide two modes , it will add the missing time rows , with either null or static values.   
-There are two modes **static**, **null**. More modes would come in future.
+## Time gap filling (new) (beta)
+SQL data can return data which do not have sample for the entire time range , e.g. you could have gaps in the data.    
+This feature provide two modes which will add the missing time rows with either null or static values.   
+Two modes are **static** and **null**. More modes would come in future.
 
 
-## SQL syntax highlighting (new)
+## SQL syntax highlighting (new) (beta)
 SQL syntax highlighting added using CodeMirror library. In future would add auto complete and formatting.
 
 ## Debugging
@@ -162,6 +170,7 @@ Build
 sudo docker-compose up
 ```
 This will run a local vertica and grafana instance.   
-A data source and data source will already be provisioned.    
+A data source and data source will already be provisioned.
+
 
 

@@ -166,7 +166,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	//so by default a long frame will be created.
 	//generate the column types, using the info from columnTypes.
 	// use the name (refId in query json) of the query as frame name
-	longFrame := data.NewFrameOfFieldTypes(qm.RefId, 0, generateFrameType(columnTypes)...)
+	longFrame := data.NewFrameOfFieldTypes(query.RefID, 0, generateFrameType(columnTypes)...)
 	//setting the header names to the frame , the names are same as return by the driver.
 	longFrame.SetFieldNames(columns...)
 
@@ -190,7 +190,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	case "Time Series":
 		// is 0 rows received , return an empty long frame
 		if longFrame.Rows() == 0 {
-			response.Frames = append(response.Frames, data.NewFrame(qm.RefId))
+			response.Frames = append(response.Frames, data.NewFrame(query.RefID))
 		} else {
 			//check of for frame type if not wide convert it to wide , when the query Type is time series.
 			if longFrame.TimeSeriesSchema().Type != data.TimeSeriesTypeWide {
@@ -220,7 +220,7 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 	default:
 		//response for rest of the query types a long frame
 		if longFrame.Rows() == 0 {
-			response.Frames = append(response.Frames, data.NewFrame(qm.RefId))
+			response.Frames = append(response.Frames, data.NewFrame(query.RefID))
 		} else {
 			response.Frames = append(response.Frames, longFrame)
 		}

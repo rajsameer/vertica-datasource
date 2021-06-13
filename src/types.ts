@@ -12,10 +12,11 @@ export interface VerticaQuery extends DataQuery {
 }
 
 export const defaultQuery: Partial<VerticaQuery> = {
-  queryString: `SELECT 
-    time_slice(end_time, $__interval_ms, 'ms', 'end') as time , 
-    node_name,
-    avg(average_cpu_usage_percent)
+  queryString: `
+  SELECT 
+   time_slice(end_time, $__interval_ms, 'ms', 'end') as time , 
+   node_name,
+   avg(average_cpu_usage_percent)
   FROM 
    v_monitor.cpu_usage 
   WHERE 
