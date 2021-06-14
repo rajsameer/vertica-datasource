@@ -115,8 +115,8 @@ This will get the latest data from the data base and keep appending the samples.
 
 ## Time gap filling (new) (beta)
 SQL data can return data which do not have sample for the entire time range , e.g. you could have gaps in the data.    
-This feature provide two modes which will add the missing time rows with either null or static values.   
-Two modes are **static** and **null**. More modes would come in future.
+This feature provide three modes which will add the missing time rows with either null , static, previous values.   
+Two modes are **static** , **null** and **previous**.
 
 
 ## SQL syntax highlighting (new) (beta)

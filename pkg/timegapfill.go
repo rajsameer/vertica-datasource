@@ -25,11 +25,7 @@ func TimeGapFill(frame *data.Frame, qm queryModel) (*data.Frame, error) {
 	from := qm.From.UTC().Round(time.Duration(qm.IntervalMs * int(time.Millisecond)))
 	to := qm.To.UTC().Round(time.Duration(qm.IntervalMs * int(time.Millisecond)))
 	for timeNow := from; timeNow.Before(to); timeNow = timeNow.Add(time.Duration(qm.IntervalMs * int(time.Millisecond))) {
-		if qm.TimeFillMode == "static" {
-			timeSeriesMap[timeNow.Unix()] = GenerateRow(timeNow, frame, qm.TimeFillValue)
-		} else {
-			timeSeriesMap[timeNow.Unix()] = GenerateRow(timeNow, frame, nil)
-		}
+		timeSeriesMap[timeNow.Unix()] = GenerateRow(timeNow, frame, nil)
 
 	}
 
@@ -64,83 +60,6 @@ func GenerateRow(timeField time.Time, frame *data.Frame, fillValue interface{}) 
 			row = append(row, timeField)
 		case data.FieldTypeTime:
 			row = append(row, timeField)
-		case data.FieldTypeFloat32:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, float32(val))
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeNullableFloat32:
-			if val, ok := fillValue.(float64); ok {
-				converted := float32(val)
-				row = append(row, &converted)
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeFloat64:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, val)
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeNullableFloat64:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, &val)
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeInt16:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, int16(val))
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeNullableInt16:
-			if val, ok := fillValue.(float64); ok {
-				converted := int16(val)
-				row = append(row, &converted)
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeInt32:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, int32(val))
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeNullableInt32:
-			if val, ok := fillValue.(float64); ok {
-				converted := int32(val)
-				row = append(row, &converted)
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeNullableInt64:
-			if val, ok := fillValue.(float64); ok {
-				converted := int64(val)
-				row = append(row, &converted)
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeInt64:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, int64(val))
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeInt8:
-			if val, ok := fillValue.(float64); ok {
-				row = append(row, int8(val))
-			} else {
-				row = append(row, nil)
-			}
-		case data.FieldTypeNullableInt8:
-			if val, ok := fillValue.(float64); ok {
-				converted := int8(val)
-				row = append(row, &converted)
-			} else {
-				row = append(row, nil)
-			}
 		default:
 			row = append(row, nil)
 		}

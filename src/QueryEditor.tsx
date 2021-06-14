@@ -39,13 +39,16 @@ export class QueryEditor extends PureComponent<Props> {
   };
   onTimeFillModeValueChange = (selectedValue: SelectableValue<string>) => {
     const { onChange, query } = this.props;
-    let val: 'static' | 'null';
+    let val: 'static' | 'null' | 'previous';
     switch (selectedValue.value) {
       case 'static':
         val = 'static';
         break;
       case 'null':
         val = 'null';
+        break;
+      case 'previous':
+        val = 'previous';
         break;
       default:
         val = 'null';
@@ -144,6 +147,7 @@ export class QueryEditor extends PureComponent<Props> {
                   options={[
                     { label: 'static', value: 'static' },
                     { label: 'null', value: 'null' },
+                    { label: 'previous', value: 'previous' },
                   ]}
                   value={{ label: timeFillMode || 'null', value: timeFillMode || 'null' }}
                   onChange={this.onTimeFillModeValueChange}

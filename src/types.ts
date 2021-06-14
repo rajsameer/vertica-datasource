@@ -7,7 +7,7 @@ export interface VerticaQuery extends DataQuery {
   streaming: boolean;
   streamingInterval: number;
   timeFillEnabled: boolean;
-  timeFillMode: 'static' | 'null';
+  timeFillMode: 'static' | 'null' | 'previous';
   timeFillStaticValue: number;
 }
 

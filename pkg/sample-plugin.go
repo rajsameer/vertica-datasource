@@ -194,24 +194,59 @@ func (td *VerticaDatasource) query(ctx context.Context, query backend.DataQuery,
 		} else {
 			//check of for frame type if not wide convert it to wide , when the query Type is time series.
 			if longFrame.TimeSeriesSchema().Type != data.TimeSeriesTypeWide {
-				wideFrame, err := data.LongToWide(longFrame, nil)
+				longFrame, err = data.LongToWide(longFrame, nil)
 				if err != nil {
 					log.DefaultLogger.Info(fmt.Sprintf("queryData :LongToWide: %s", err))
 					response.Error = err
 					return response
 				}
-				//fill time gaps if TimeFillEnabled is true
-				if qm.TimeFillEnabled {
-					frame, err := TimeGapFill(wideFrame, qm)
-					if err != nil {
-						log.DefaultLogger.Info(fmt.Sprintf("queryData :TimeGapFill: %s", err))
-						response.Error = err
-						return response
-					}
-					response.Frames = append(response.Frames, frame)
-				} else {
-					response.Frames = append(response.Frames, wideFrame)
+			}
+
+			//fill time gaps if TimeFillEnabled is true
+			if qm.TimeFillEnabled {
+				frame, err := TimeGapFill(longFrame, qm)
+				if err != nil {
+					log.DefaultLogger.Info(fmt.Sprintf("queryData :TimeGapFill: %s", err))
+					response.Error = err
+					return response
 				}
+				fillMissing := &data.FillMissing{}
+				switch qm.TimeFillMode {
+				case "static":
+					fillMissing.Mode = data.FillModeValue
+					fillMissing.Value = qm.TimeFillValue
+				case "null":
+					fillMissing.Mode = data.FillModeNull
+				case "previous":
+					fillMissing.Mode = data.FillModePrevious
+				default:
+					fillMissing.Mode = data.FillModeNull
+				}
+
+				for _, field := range frame.Fields {
+					if field.Type() != data.FieldTypeTime && field.Type() != data.FieldTypeNullableTime {
+						for rowIdx := 0; rowIdx < frame.Rows(); rowIdx++ {
+							var previousRow int
+							if rowIdx == 0 {
+								previousRow = 0
+							} else {
+								previousRow = rowIdx - 1
+							}
+							if _, ok := field.ConcreteAt(rowIdx); !ok {
+								filled, err := data.GetMissing(fillMissing, field, previousRow)
+								if err != nil {
+									log.DefaultLogger.Info(fmt.Sprintf("queryData :fillmissing : %s", err))
+								} else {
+									field.Set(rowIdx, filled)
+								}
+							}
+
+						}
+
+					}
+
+				}
+				response.Frames = append(response.Frames, frame)
 			} else {
 				response.Frames = append(response.Frames, longFrame)
 			}
