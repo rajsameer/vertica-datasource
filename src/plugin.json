@@ -7,6 +7,7 @@
   "backend": true,
   "annotations": true,
   "streaming": true,
+  "alerting": true,
   "executable": "gpx_vertica-datasource",
   "info": {
     "description": "vertica grafana data source sql",

@@ -1,21 +1,21 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { LegacyForms, InlineLabel, Switch, Field, InfoBox, Slider } from '@grafana/ui';
+import { Field, InfoBox, InlineLabel, LegacyForms, Slider, Switch } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps, SelectableValue } from '@grafana/data';
 import { VerticaDataSourceOptions, VerticaSecureJsonData } from './types';
 
 const { SecretFormField, FormField, Select } = LegacyForms;
 
-interface Props extends DataSourcePluginOptionsEditorProps<VerticaDataSourceOptions> {}
+type Props = DataSourcePluginOptionsEditorProps<VerticaDataSourceOptions>;
 
 interface State {}
 
 export class ConfigEditor extends PureComponent<Props, State> {
   onPathChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      path: event.target.value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        path: event.target.value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
 
@@ -46,71 +46,74 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   onHostChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      host: event.target.value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        host: event.target.value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
 
   onMaxOpenConnectionsChange = (value: number) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      maxOpenConnections: value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        maxOpenConnections: value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
+
   onMaxIdealConnectionsChange = (value: number) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      maxIdealConnections: value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        maxIdealConnections: value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
+
   onMaxConnectionIdealTimeChange = (value: number) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      maxConnectionIdealTime: value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        maxConnectionIdealTime: value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
+
   onDatabaseChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      database: event.target.value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        database: event.target.value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
 
   onUserChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      user: event.target.value,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        user: event.target.value,
+      };
     onOptionsChange({ ...options, jsonData });
   };
 
   onPreparedStatementChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      usePreparedStatement: event.currentTarget.checked,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        usePreparedStatement: event.currentTarget.checked,
+      };
     onOptionsChange({ ...options, jsonData });
   };
 
   onConnectionLoadbalancingChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      useConnectionLoadbalancing: event.currentTarget.checked,
-    };
+    const { onOptionsChange, options } = this.props,
+      jsonData = {
+        ...options.jsonData,
+        useConnectionLoadbalancing: event.currentTarget.checked,
+      };
     onOptionsChange({ ...options, jsonData });
   };
 
@@ -164,9 +167,9 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   render() {
-    const { options } = this.props;
-    const { jsonData, secureJsonFields } = options;
-    const secureJsonData = (options.secureJsonData || {}) as VerticaSecureJsonData;
+    const { options } = this.props,
+      { jsonData, secureJsonFields } = options,
+      secureJsonData = (options.secureJsonData || {}) as VerticaSecureJsonData;
 
     return (
       <div className="gf-form-group">

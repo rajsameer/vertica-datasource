@@ -1,42 +1,41 @@
 import defaults from 'lodash/defaults';
 
-import React, { PureComponent, FormEvent } from 'react';
-import { config } from '@grafana/runtime';
-import { InlineLabel, InlineFieldRow, InlineSwitch, InlineField, Input, Select, Button } from '@grafana/ui';
+import React, { FormEvent, PureComponent } from 'react';
+import { Button, InlineField, InlineFieldRow, InlineLabel, InlineSwitch, Input, Select } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './DataSource';
-import { defaultQuery, VerticaDataSourceOptions, VerticaQuery } from './types';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { VerticaDataSourceOptions, VerticaQuery, defaultQuery } from './types';
+import { CodeMirror } from './CodeMirror';
 import './styles.css';
-
-require('codemirror/mode/sql/sql');
-require('codemirror/theme/moxer.css');
-require('codemirror/theme/neat.css');
-require('codemirror/lib/codemirror.css');
 
 type Props = QueryEditorProps<DataSource, VerticaQuery, VerticaDataSourceOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
-  onQueryTextChange = (editor: any, data: any, value: string) => {
+  onQueryTextChange = (value: string) => {
     const { onChange, query } = this.props;
     onChange({ ...query, queryString: value });
   };
+
   onStreamingSwitchChange = (event: FormEvent<HTMLInputElement>) => {
     const { onChange, query } = this.props;
     onChange({ ...query, streaming: event.currentTarget.checked });
   };
+
   onStreamingIntervalChange = (event: FormEvent<HTMLInputElement>) => {
     const { onChange, query } = this.props;
     onChange({ ...query, streamingInterval: event.currentTarget.valueAsNumber });
   };
+
   onTimeFillEnabledSwitchChange = (event: FormEvent<HTMLInputElement>) => {
     const { onChange, query } = this.props;
     onChange({ ...query, timeFillEnabled: event.currentTarget.checked });
   };
+
   onRunButtonClick = () => {
     const { onRunQuery } = this.props;
     onRunQuery();
   };
+
   onTimeFillModeValueChange = (selectedValue: SelectableValue<string>) => {
     const { onChange, query } = this.props;
     let val: 'static' | 'null' | 'previous';
@@ -55,6 +54,7 @@ export class QueryEditor extends PureComponent<Props> {
     }
     onChange({ ...query, timeFillMode: val });
   };
+
   onQueryTypeChange = (selectedValue: SelectableValue<string>) => {
     const { onChange, query } = this.props;
     switch (selectedValue.value) {
@@ -65,41 +65,20 @@ export class QueryEditor extends PureComponent<Props> {
         onChange({ ...query, format: 'Time Series' });
     }
   };
+
   onTimeFillStaticValue = (event: FormEvent<HTMLInputElement>) => {
     const { onChange, query } = this.props;
     onChange({ ...query, timeFillStaticValue: event.currentTarget.valueAsNumber });
   };
+
   render() {
-    const query = defaults(this.props.query, defaultQuery);
-    const { queryString, streaming, streamingInterval, timeFillEnabled, timeFillMode, timeFillStaticValue, format } =
-      query;
+    const query = defaults(this.props.query, defaultQuery),
+      { queryString, streaming, streamingInterval, timeFillEnabled, timeFillMode, timeFillStaticValue, format } = query;
+
     return (
       <div className="gf-form-group">
-        <div className="gf-form">
-          <InlineLabel width="auto"> Query </InlineLabel>
-          <CodeMirror
-            className="QueryEditor"
-            value={queryString}
-            options={
-              config.theme.isDark
-                ? {
-                    mode: 'sql',
-                    theme: 'moxer',
-                    lineNumber: false,
-                    visualViewport: Infinity,
-                  }
-                : {
-                    mode: 'sql',
-                    theme: 'neat',
-                    lineNumber: true,
-                    visualViewport: Infinity,
-                  }
-            }
-            onChange={this.onQueryTextChange}
-            autoCursor={false}
-            autoScroll={false}
-          />
-        </div>
+        <InlineLabel width="auto"> Query </InlineLabel>
+        <CodeMirror content={queryString} onContentChange={this.onQueryTextChange} />
         <div className="gf-form">
           <InlineFieldRow>
             <InlineField label="QueryType" tooltip="Query type">

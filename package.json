@@ -1,6 +1,6 @@
 {
   "name": "rajsameer-vertica-datasource",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "vertica grafana data source sql",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
@@ -13,10 +13,16 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@grafana/data": "^8.0.1",
+    "@grafana/eslint-config": "^2.5.0",
     "@grafana/runtime": "^8.0.1",
     "@grafana/toolkit": "^8.0.1",
     "@grafana/ui": "^8.0.1",
-    "@types/lodash": "^4.14.170"
+    "@types/lodash": "^4.14.170",
+    "@typescript-eslint/eslint-plugin": "^4.28.1",
+    "@typescript-eslint/parser": "^4.28.1",
+    "eslint": "^7.29.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "eslint-plugin-react": "^7.24.0"
   },
   "resolutions": {
     "rxjs": "6.6.3"
@@ -25,11 +31,14 @@
     "node": ">=14"
   },
   "dependencies": {
+    "@codemirror/basic-setup": "^0.18.2",
+    "@codemirror/commands": "^0.18.3",
+    "@codemirror/lang-sql": "^0.18.0",
+    "@codemirror/state": "^0.18.7",
+    "@codemirror/view": "^0.18.17",
     "@grafana/tsconfig": "^1.0.0-rc1",
     "@types/node": "^15.12.2",
-    "codemirror": "^5.61.0",
     "emotion": "^11.0.0",
-    "react-codemirror2": "^7.2.1",
     "tslib": "^2.2.0"
   }
 }
