@@ -8,10 +8,10 @@ import (
 )
 
 // fill time gaps in sql result
-//implementation not file
-//creates an map of time and empty rows, the time range in to and from and the interval is interval from the query
-//take the sql results and map all the rows to map , and create a new frame.
-//might change this logic in future keeping the feature
+// implementation not file
+// creates an map of time and empty rows, the time range in to and from and the interval is interval from the query
+// take the sql results and map all the rows to map , and create a new frame.
+// might change this logic in future keeping the feature
 func TimeGapFill(frame *data.Frame, qm queryModel) (*data.Frame, error) {
 	filledFrame := frame.EmptyCopy()
 	timeFieldIdx := 0

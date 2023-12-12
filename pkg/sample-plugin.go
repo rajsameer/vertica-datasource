@@ -42,10 +42,10 @@ type VerticaDatasource struct {
 	im instancemgmt.InstanceManager
 }
 
-//GetVerticaDb will return the vertica db connection
-//stored in the instance setting when the instance is created or update
+// GetVerticaDb will return the vertica db connection
+// stored in the instance setting when the instance is created or update
 func (td *VerticaDatasource) GetVerticaDb(pluginContext backend.PluginContext) (*sql.DB, error) {
-	instance, err := td.im.Get(pluginContext)
+	instance, err := td.im.Get(context.Background(), pluginContext)
 	if err != nil {
 		log.DefaultLogger.Info(fmt.Sprintf("getVerticaDb: %s", err))
 		return nil, err
@@ -324,29 +324,31 @@ type instanceSettings struct {
 	Name       string
 }
 
-// newDataSourceInstance is called always when a datasource is created or updated in the ui
-// in either create or update, open a pool of sql connections and update them
-func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func newDataSourceInstance(_ context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+	// func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	var config datasourceConfig
-	secret := setting.DecryptedSecureJSONData["password"]
-	err := json.Unmarshal(setting.JSONData, &config)
+	secret := settings.DecryptedSecureJSONData["password"]
+
+	err := json.Unmarshal(settings.JSONData, &config)
 	if err != nil {
-		log.DefaultLogger.Error(fmt.Sprintf("newDataSourceInstance :Unmarshal: %s", err))
+		return nil, err
 	}
 	connStr := config.ConnectionURL(secret)
 	db, err := sql.Open("vertica", connStr)
 	if err != nil {
 		return nil, err
 	}
+
 	db.SetMaxOpenConns(config.MaxOpenConnections)
 	db.SetMaxIdleConns(config.MaxIdealConnections)
 	db.SetConnMaxIdleTime(time.Minute * time.Duration(config.MaxConnectionIdealTime))
-	log.DefaultLogger.Info(fmt.Sprintf("newDataSourceInstance: new instance fo datasource created: %s", setting.Name))
+	log.DefaultLogger.Info(fmt.Sprintf("newDataSourceInstance: new instance of datasource created: %+v", settings.Name))
 	return &instanceSettings{
 		httpClient: &http.Client{},
 		Db:         db,
-		Name:       setting.Name,
+		Name:       settings.Name,
 	}, nil
+
 }
 
 func (s *instanceSettings) Dispose() {
